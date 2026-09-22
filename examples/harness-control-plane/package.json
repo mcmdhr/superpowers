@@ -1,0 +1,14 @@
+{
+  "name": "@superpowers/harness-control-plane-demo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A dependency-free demo of a Superpowers Harness Control Plane CLI.",
+  "bin": {
+    "superpowers-harness": "./bin/superpowers-harness.mjs"
+  },
+  "scripts": {
+    "demo": "node ./bin/superpowers-harness.mjs demo",
+    "test": "node --test"
+  }
+}
