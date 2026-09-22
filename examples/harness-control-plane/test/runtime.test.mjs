@@ -35,12 +35,14 @@ test("invalid transitions fail closed", async () => {
 test("Claude and Codex JSONL are normalized into one event schema", async () => {
   const root = await workspace();
   await ingestJsonl(root, '{"type":"assistant","message":"plan"}\n', "claude-code");
-  await ingestJsonl(root, '{"type":"function_call","name":"read_file"}\n', "codex");
+  await ingestJsonl(root, '{"type":"function_call","name":"read_file","trace_id":"trace-external","run_id":"run-external"}\n', "codex");
   const events = await readEvents(root);
   assert.equal(events[0].type, "generation");
   assert.equal(events[0].agent, "claude-code");
   assert.equal(events[1].type, "tool_call");
   assert.equal(events[1].agent, "codex");
+  assert.equal(events[1].trace_id, "trace-external");
+  assert.equal(events[1].run_id, "run-external");
 });
 
 test("context and OTLP exports are reproducible artifacts", async () => {
