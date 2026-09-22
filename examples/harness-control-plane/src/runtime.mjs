@@ -1,6 +1,6 @@
 import { mkdir, readFile, appendFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
 export const STATES = [
   "intake",
@@ -141,10 +141,16 @@ export async function buildContext(workspace, limit = 20) {
   return context;
 }
 
+export function normalizeTraceId(value) {
+  const normalized = String(value ?? "").replaceAll("-", "").toLowerCase();
+  if (/^[0-9a-f]{32}$/.test(normalized)) return normalized;
+  return createHash("sha256").update(String(value ?? "")).digest("hex").slice(0, 32);
+}
+
 export function eventToSpan(event, index) {
   const start = Date.parse(event.timestamp) * 1_000_000;
   return {
-    traceId: event.trace_id.replaceAll("-", "").slice(0, 32).padEnd(32, "0"),
+    traceId: normalizeTraceId(event.trace_id),
     spanId: event.id.replaceAll("-", "").slice(0, 16).padEnd(16, "0") || index.toString(16).padStart(16, "0"),
     name: `${event.agent}.${event.type}`,
     kind: event.type === "generation" ? 3 : 1,
