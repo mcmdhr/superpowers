@@ -1,4 +1,5 @@
-import { emitEvent } from "./runtime.mjs";
+import { createHash } from "node:crypto";
+import { emitEvent, readEvents } from "./runtime.mjs";
 
 export function normalizeExternalEvent(raw, agent) {
   const type = raw.type ?? raw.event ?? raw.kind ?? "event";
@@ -26,7 +27,7 @@ export function normalizeExternalEvent(raw, agent) {
 }
 
 export async function ingestJsonl(workspace, content, agent) {
-  const results = [];
+  const parsed = [];
   for (const [index, line] of content.split("\n").entries()) {
     if (!line.trim()) continue;
     let raw;
@@ -35,7 +36,22 @@ export async function ingestJsonl(workspace, content, agent) {
     } catch (error) {
       throw new Error(`Invalid JSONL at line ${index + 1}: ${error.message}`);
     }
-    results.push(await emitEvent(workspace, normalizeExternalEvent(raw, agent)));
+    parsed.push({ raw, line });
+  }
+  const existing = new Set((await readEvents(workspace))
+    .map((event) => event.metadata?.event_fingerprint)
+    .filter(Boolean));
+  const results = [];
+  for (const { raw, line } of parsed) {
+    const fingerprint = createHash("sha256").update(`${agent}:\n${line}`).digest("hex");
+    if (existing.has(fingerprint)) continue;
+    const event = normalizeExternalEvent(raw, agent);
+    results.push(await emitEvent(workspace, {
+      ...event,
+      id: fingerprint.slice(0, 32),
+      metadata: { ...event.metadata, event_fingerprint: fingerprint }
+    }));
+    existing.add(fingerprint);
   }
   return results;
 }
