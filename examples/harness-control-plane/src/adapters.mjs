@@ -17,6 +17,8 @@ export function normalizeExternalEvent(raw, agent) {
     type: normalizedType,
     agent,
     source: `${agent}-adapter`,
+    trace_id: raw.trace_id ?? raw.traceId ?? null,
+    run_id: raw.run_id ?? raw.runId ?? null,
     payload,
     metadata: {
       external_event_type: type,
