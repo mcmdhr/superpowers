@@ -107,12 +107,22 @@ export async function transition(workspace, nextState, metadata = {}) {
 
 export async function readEvents(workspace) {
   const paths = await ensureWorkspace(workspace);
+  let content;
   try {
-    const content = await readFile(paths.events, "utf8");
-    return content.split("\n").filter(Boolean).map((line) => JSON.parse(line));
-  } catch {
-    return [];
+    content = await readFile(paths.events, "utf8");
+  } catch (error) {
+    if (error.code === "ENOENT") return [];
+    throw error;
   }
+  return content.split("\n").reduce((events, line, index) => {
+    if (!line.trim()) return events;
+    try {
+      events.push(JSON.parse(line));
+    } catch (error) {
+      throw new Error(`Invalid event log JSONL at line ${index + 1}: ${error.message}`);
+    }
+    return events;
+  }, []);
 }
 
 export async function buildContext(workspace, limit = 20) {
